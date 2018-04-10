@@ -1,0 +1,40 @@
+Resources:
+  webserver:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              httpd: []
+
+          services:
+            sysvinit:
+              httpd:
+                enabled: true
+                ensureRunning: true
+
+    Properties:
+      ImageId: ami-4f55e332
+      InstanceType: t2.micro
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!bin/bash -eux
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -r webserver -s ${AWS::StackId} --region ${AWS::Region} -v
+
+  securityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: access web application
+      SecurityGroupIngress:
+        -
+          IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+
+Outputs:
+  webserverIPAddress:
+    Value: !Sub ${webserver.PublicIp}
